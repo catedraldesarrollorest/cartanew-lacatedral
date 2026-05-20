@@ -609,33 +609,7 @@
   <p>© 2025 <span>La Catedral</span> Bar·Restaurante · Vedado · La Habana · Cuba</p>
 </footer>
 
-<button class="admin-trigger" onclick="document.getElementById('adminModal').classList.add('open')" title="Backoffice">⚙</button>
-
-<div class="modal-overlay" id="adminModal">
-  <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title">BACKOFFICE · GALERÍA</span>
-      <button class="modal-close" onclick="document.getElementById('adminModal').classList.remove('open')">×</button>
-    </div>
-    <div class="upload-section">
-      <h4 data-es="El Local (máx. 6 fotos)" data-en="The Venue (max. 6)">El Local (máx. 6 fotos)</h4>
-      <div class="upload-grid" id="up-local"></div>
-    </div>
-    <div class="upload-section">
-      <h4 data-es="Bebidas (máx. 5 fotos)" data-en="Drinks (max. 5)">Bebidas (máx. 5 fotos)</h4>
-      <div class="upload-grid" id="up-bebidas"></div>
-    </div>
-    <div class="upload-section">
-      <h4 data-es="Platos (máx. 5 fotos)" data-en="Dishes (max. 5)">Platos (máx. 5 fotos)</h4>
-      <div class="upload-grid" id="up-platos"></div>
-    </div>
-    <div class="upload-section">
-      <h4 data-es="Postres (máx. 5 fotos)" data-en="Desserts (max. 5)">Postres (máx. 5 fotos)</h4>
-      <div class="upload-grid" id="up-postres"></div>
-    </div>
-    <button class="save-btn" onclick="saveGallery()" data-es="Guardar y publicar" data-en="Save and publish">Guardar y publicar</button>
-  </div>
-</div>
+<a href="/admin" class="admin-trigger" title="Backoffice">⚙</a>
 
 <script>
 // ── LANG ─────────────────────────────────────────────────
@@ -722,7 +696,129 @@ function saveGallery() {
   document.getElementById('adminModal').classList.remove('open');
 }
 
-buildSlots();
+// Load data from API
+const API_URL = window.location.hostname === 'localhost'
+  ? 'http://localhost:3000'
+  : window.location.origin.replace(/^https?:\/\//, 'https://');
+
+async function loadPublicData() {
+  try {
+    const response = await fetch(`${API_URL}/api/public/data`);
+    if (!response.ok) throw new Error('API error');
+
+    const data = await response.json();
+    loadGalleryFromAPI(data.gallery);
+    loadMenuFromAPI(data.menuItems);
+  } catch (error) {
+    console.error('Error loading data:', error);
+    // Fallback: show empty gallery
+    buildSlots();
+  }
+}
+
+function loadGalleryFromAPI(galleryData) {
+  Object.keys(LIMITS).forEach(cat => {
+    const catImages = galleryData.filter(img => img.category === cat).sort((a, b) => a.position - b.position);
+    images[cat] = catImages.map(img => img.image_url);
+    renderGallery(cat);
+  });
+}
+
+function loadMenuFromAPI(menuItems) {
+  const menuContainer = document.getElementById('menu');
+  if (!menuContainer) return;
+
+  const categoryOrder = ['bebidas', 'primeros', 'principales', 'postres', 'espirituosos'];
+  const categoryLabels = {
+    bebidas: 'Bebidas',
+    primeros: 'Primeros',
+    principales: 'Principales',
+    postres: 'Postres',
+    espirituosos: 'Espirituosos'
+  };
+
+  // Clear existing menu tabs/content
+  const menuTabs = document.querySelector('#menu .tab-bar');
+  const menuTabsContainer = document.querySelector('#menu .container');
+
+  if (menuTabs) menuTabs.remove();
+
+  // Group items by category
+  const grouped = {};
+  categoryOrder.forEach(cat => grouped[cat] = []);
+  menuItems.forEach(item => {
+    if (grouped[item.category]) {
+      grouped[item.category].push(item);
+    }
+  });
+
+  // Create new tab bar
+  const newTabBar = document.createElement('div');
+  newTabBar.className = 'tab-bar';
+  newTabBar.style.marginBottom = '3rem';
+
+  categoryOrder.forEach((cat, idx) => {
+    const btn = document.createElement('button');
+    btn.className = 'tab-btn' + (idx === 0 ? ' active' : '');
+    btn.setAttribute('data-es', categoryLabels[cat]);
+    btn.setAttribute('data-en', categoryLabels[cat]);
+    btn.textContent = categoryLabels[cat];
+    btn.onclick = function() {
+      switchTab(this, `mn-${cat}`);
+    };
+    newTabBar.appendChild(btn);
+
+    const panel = document.createElement('div');
+    panel.id = `mn-${cat}`;
+    panel.className = 'tab-panel' + (idx === 0 ? ' active' : '');
+
+    const items = grouped[cat] || [];
+
+    if (items.length > 0) {
+      const catDiv = document.createElement('div');
+      catDiv.className = 'menu-category';
+
+      const titleDiv = document.createElement('div');
+      titleDiv.className = 'menu-cat-title';
+      titleDiv.setAttribute('data-es', categoryLabels[cat]);
+      titleDiv.setAttribute('data-en', categoryLabels[cat]);
+      titleDiv.textContent = categoryLabels[cat];
+      catDiv.appendChild(titleDiv);
+
+      const itemsDiv = document.createElement('div');
+      itemsDiv.className = 'menu-items';
+
+      items.forEach(item => {
+        const itemEl = document.createElement('div');
+        itemEl.className = 'menu-item';
+
+        let html = `<span class="menu-item-name" data-es="${item.name_es}" data-en="${item.name_en}">${item.name_es}</span>`;
+
+        if (item.description_es || item.description_en) {
+          html += `<span class="menu-item-desc" data-es="${item.description_es || ''}" data-en="${item.description_en || ''}">${item.description_es || ''}</span>`;
+        }
+
+        itemEl.innerHTML = html;
+        itemsDiv.appendChild(itemEl);
+      });
+
+      catDiv.appendChild(itemsDiv);
+      panel.appendChild(catDiv);
+    }
+
+    menuContainer.appendChild(panel);
+  });
+
+  menuContainer.insertBefore(newTabBar, menuContainer.querySelector('.container'));
+
+  // Apply current language to new elements
+  if (lang !== 'es') {
+    setLang(lang);
+  }
+}
+
+// Load data on page load
+document.addEventListener('DOMContentLoaded', loadPublicData);
 </script>
 </body>
 </html>
