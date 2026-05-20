@@ -11,5 +11,15 @@
     "api/**/*.js": {
       "runtime": "nodejs20.x"
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/admin",
+      "destination": "/public/admin/index.html"
+    },
+    {
+      "source": "/admin/(.*)",
+      "destination": "/public/admin/$1"
+    }
+  ]
 }
