@@ -6,6 +6,9 @@ dotenv.config({ path: '.env.local' });
 
 const authRoutes = require('./src/routes/auth');
 const publicRoutes = require('./src/routes/public');
+const galleryRoutes = require('./src/routes/gallery');
+const menuRoutes = require('./src/routes/menu');
+const pdfRoutes = require('./src/routes/pdf');
 const authMiddleware = require('./src/middleware/auth');
 
 const app = express();
@@ -24,6 +27,9 @@ app.use(cors({
 
 app.use('/api/auth', authRoutes);
 app.use('/api/public', publicRoutes);
+app.use('/api/gallery', galleryRoutes);
+app.use('/api/menu', menuRoutes);
+app.use('/api/pdf', pdfRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'Server is running' });
