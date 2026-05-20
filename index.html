@@ -699,7 +699,7 @@ function saveGallery() {
 // Load data from API
 const API_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3000'
-  : window.location.origin.replace(/^https?:\/\//, 'https://');
+  : window.location.origin;
 
 async function loadPublicData() {
   try {
